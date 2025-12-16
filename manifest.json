@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "TabZero - AI Tab Triage",
+  "version": "1.0.0",
+  "description": "Review, close, note, and summarize your open tabs.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_title": "Open TabZero",
+    "default_icon": "icon.svg"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Open TabZero"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.svg",
+    "48": "icon.svg",
+    "128": "icon.svg"
+  }
+}
