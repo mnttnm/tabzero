@@ -9,7 +9,7 @@
     "activeTab"
   ],
   "action": {
-    "default_title": "Open TabZero",
+    "default_title": "TabZero - Tab Triage",
     "default_icon": "icon.svg"
   },
   "commands": {
