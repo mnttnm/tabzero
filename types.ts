@@ -13,6 +13,7 @@ export enum ActionType {
   SUMMARIZE = 'SUMMARIZE',
   OPEN = 'OPEN',
   SKIP = 'SKIP',
+  FAVORITE = 'FAVORITE',
 }
 
 export interface SavedItem {
@@ -25,7 +26,10 @@ export interface SavedItem {
   summary?: string;
   tags?: string[];
   type: 'saved' | 'note' | 'summary';
+  favorite?: boolean;
 }
+
+export type SavedItemStatus = 'all' | 'saved' | 'note' | 'summary' | 'favorite';
 
 export interface TabAction {
   type: ActionType;

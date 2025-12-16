@@ -110,3 +110,25 @@ export const subscribeToTabRemoval = (callback: (tabId: number) => void): () => 
         return () => {};
     }
 }
+
+export const openTabsInNewWindow = async (urls: string[]): Promise<void> => {
+    if (isExtension) {
+        if (urls.length === 0) return;
+        return new Promise((resolve) => {
+             // Create window with the first URL
+             chrome.windows.create({ url: urls[0] }, (win: any) => {
+                 // Create tabs for rest
+                 if (urls.length > 1) {
+                     const remaining = urls.slice(1);
+                     remaining.forEach(u => {
+                         chrome.tabs.create({ windowId: win.id, url: u });
+                     });
+                 }
+                 resolve();
+             });
+        });
+    } else {
+        console.log(`[Mock] Opening new window with ${urls.length} tabs`);
+        if (urls.length > 0) window.open(urls[0], '_blank');
+    }
+}
