@@ -7,6 +7,7 @@ import * as geminiService from './services/geminiService';
 import { TabCard } from './components/TabCard';
 import { ReviewControls } from './components/ReviewControls';
 import { NoteModal } from './components/NoteModal';
+import { Navbar } from './components/Navbar';
 import { SavedItemsList } from './components/SavedItemsList';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
@@ -98,6 +99,13 @@ const App: React.FC = () => {
           await tabService.closeTab(currentTab.id);
           break;
 
+        case ActionType.FAVORITE:
+          newItem.type = 'saved';
+          newItem.favorite = true;
+          await storageService.saveItem(newItem);
+          await tabService.closeTab(currentTab.id);
+          break;
+
         case ActionType.NOTE:
           // Modal logic handles the actual saving
           setIsNoteModalOpen(true);
@@ -183,6 +191,9 @@ const App: React.FC = () => {
         case 's':
           handleAction(ActionType.SAVE);
           break;
+        case 'f':
+          handleAction(ActionType.FAVORITE);
+          break;
         case 'n':
           handleAction(ActionType.NOTE);
           break;
@@ -206,111 +217,119 @@ const App: React.FC = () => {
 
   // --- RENDER ---
 
+  // --- REFRESH LOGIC ---
+  const handleRefresh = async () => {
+    setLoading(true);
+    const [fetchedTabs, fetchedSaved] = await Promise.all([
+      tabService.getAllTabs(),
+      storageService.getSavedItems()
+    ]);
+    setTabs(fetchedTabs);
+    setSavedItems(fetchedSaved);
+    setLoading(false);
+  };
+
+  const handleHardRefresh = () => {
+    window.location.reload();
+  };
+
+  // --- RENDER ---
+
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-zinc-400">
-        <div className="flex flex-col items-center gap-4">
-           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-           <p>Analyzing open tabs...</p>
+      <div className="flex h-screen w-full flex-col bg-background">
+        <Navbar view={view} setView={setView} onRefresh={() => { }} onHardRefresh={handleHardRefresh} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-zinc-400">Analyzing open tabs...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Finished State
-  if (isFinished && view === 'review') {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-zinc-100 animate-in fade-in duration-700">
-         <div className="mb-8 p-6 bg-green-500/10 rounded-full border border-green-500/20">
-            <CheckCircle2 className="w-16 h-16 text-green-500" />
-         </div>
-         <h1 className="text-4xl font-bold mb-4">All Clear!</h1>
-         <p className="text-zinc-400 mb-8 max-w-md text-center">
-           You have reviewed all open tabs. You can now close this tab or review your action items.
-         </p>
-         <button 
-           onClick={() => setView('list')}
-           className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-medium transition-colors border border-zinc-700"
-         >
-           View Saved Items
-         </button>
-      </div>
-    );
-  }
-
-  // List View
-  if (view === 'list') {
-      return (
-          <div className="min-h-screen bg-background p-8">
-              <SavedItemsList items={savedItems} onClear={async () => {
-                  await storageService.clearSavedItems();
-                  setSavedItems([]);
-              }} />
-              <div className="fixed bottom-8 right-8">
-                   <button 
-                     onClick={() => setView('review')}
-                     disabled={tabs.length === 0}
-                     className="px-4 py-2 bg-zinc-800 text-zinc-400 rounded-lg hover:text-white disabled:opacity-50"
-                   >
-                       Back to Review
-                   </button>
-              </div>
-          </div>
-      )
-  }
-
-  // Main Review Interface
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      {/* Top Status Bar */}
-      <div className="flex items-center justify-between px-8 py-6">
-        <div className="flex items-center gap-2">
-           <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-           <span className="font-mono text-sm text-zinc-400">TAB ZERO PROTOCOL</span>
-        </div>
-        <div className="text-zinc-500 text-sm font-medium">
-            {tabs.length} tabs remaining
-        </div>
-      </div>
+      <Navbar
+        view={view}
+        setView={setView}
+        onRefresh={handleRefresh}
+        onHardRefresh={handleHardRefresh}
+      />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-center relative">
-         {/* Stack Effect Background (Purely visual) */}
-         <div className="absolute w-full max-w-xl h-64 bg-zinc-800/20 rounded-2xl transform translate-y-4 scale-95 -z-10" />
-         <div className="absolute w-full max-w-lg h-64 bg-zinc-800/10 rounded-2xl transform translate-y-8 scale-90 -z-20" />
+      {/* CONTENT AREA */}
+      <div className="flex-1 overflow-hidden relative">
 
-         {/* Active Card */}
-         {currentTab && (
-            <div className="w-full flex justify-center px-4 relative">
+        {view === 'list' && (
+          <div className="h-full overflow-y-auto">
+            <SavedItemsList
+              items={savedItems}
+              onClear={async () => {
+                // Logic moved to component or passed as is, checking list component changes next
+                await storageService.clearSavedItems();
+                setSavedItems([]);
+              }}
+              onUpdateItems={(items) => setSavedItems(items)}
+            />
+          </div>
+        )}
+
+        {view === 'review' && isFinished && (
+          <div className="flex h-full w-full flex-col items-center justify-center text-zinc-100 animate-in fade-in duration-700">
+            <div className="mb-8 p-6 bg-green-500/10 rounded-full border border-green-500/20">
+              <CheckCircle2 className="w-16 h-16 text-green-500" />
+            </div>
+            <h1 className="text-4xl font-bold mb-4">All Clear!</h1>
+            <p className="text-zinc-400 mb-8 max-w-md text-center">
+              You have reviewed all open tabs. You can now close this tab or review your action items.
+            </p>
+            <button
+              onClick={() => setView('list')}
+              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-medium transition-colors border border-zinc-700"
+            >
+              View Dashboard
+            </button>
+          </div>
+        )}
+
+        {view === 'review' && !isFinished && (
+          <div className="flex flex-col h-full w-full items-center justify-center relative">
+            {/* Status Info (Moved from old top bar) */}
+            <div className="absolute top-6 text-zinc-500 text-sm font-medium">
+              {tabs.length} tabs remaining
+            </div>
+
+            {/* Stack Effect Background */}
+            <div className="absolute w-full max-w-xl h-64 bg-zinc-800/20 rounded-2xl transform translate-y-4 scale-95 -z-10" />
+            <div className="absolute w-full max-w-lg h-64 bg-zinc-800/10 rounded-2xl transform translate-y-8 scale-90 -z-20" />
+
+            {/* Active Card */}
+            {currentTab && (
+              <div className="w-full flex justify-center px-4 relative">
                 {processing && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                    </div>
+                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  </div>
                 )}
                 <TabCard tab={currentTab} isActive={true} />
-            </div>
-         )}
-         
-         <ReviewControls onAction={handleAction} disabled={processing} />
-         
-         {/* Shortcuts Help */}
-         <div className="mt-12 flex gap-8 text-xs text-zinc-600 font-mono">
-             <span>[O] Open</span>
-             <span>[X] Close</span>
+              </div>
+            )}
+
+            <ReviewControls onAction={handleAction} disabled={processing} />
+
+            {/* Shortcuts Help */}
+            <div className="mt-12 flex gap-8 text-xs text-zinc-600 font-mono">
+              <span>[O] Open</span>
+              <span>[X] Close</span>
              <span>[S] Save</span>
+              <span>[F] Favorite</span>
              <span>[A] AI Summary</span>
-             <span>[N] Note</span>
-             <span>[→] Skip</span>
-         </div>
-         
-         <div className="absolute top-6 right-8">
-            <button 
-                onClick={() => setView('list')}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors uppercase font-medium tracking-wider"
-            >
-                Start Dashboard
-            </button>
-         </div>
+              <span>[N] Note</span>
+              <span>[→] Skip</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <NoteModal 
