@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TabZero - AI Tab Triage",
+  "name": "TabZero",
   "version": "1.0.0",
   "description": "Review, close, note, and summarize your open tabs.",
   "permissions": [
