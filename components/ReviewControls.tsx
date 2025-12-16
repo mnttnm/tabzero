@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Clock, StickyNote, Sparkles, ExternalLink } from 'lucide-react';
+import { X, Clock, StickyNote, Sparkles, ExternalLink, Star } from 'lucide-react';
 import { ActionType } from '../types';
 
 interface ReviewControlsProps {
@@ -29,6 +29,13 @@ export const ReviewControls: React.FC<ReviewControlsProps> = ({ onAction, disabl
       sub: '(s)',
       icon: <Clock className="w-5 h-5" />,
       style: 'bg-zinc-800 hover:bg-primary hover:text-white text-zinc-300 border-zinc-700',
+    },
+    {
+      action: ActionType.FAVORITE,
+      label: 'Favorite',
+      sub: '(f)',
+      icon: <Star className="w-5 h-5" />,
+      style: 'bg-zinc-800 hover:bg-yellow-500 hover:text-white text-zinc-300 border-zinc-700',
     },
     {
       action: ActionType.SUMMARIZE,
