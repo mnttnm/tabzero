@@ -22,14 +22,22 @@ const App: React.FC = () => {
 
   // Load tabs and saved items on mount
   useEffect(() => {
-    const init = async () => {
+    const loadData = async () => {
       setLoading(true);
+
+      // Cleanup duplicates on load
+      await storageService.cleanupDuplicates();
+
       const [fetchedTabs, fetchedSaved] = await Promise.all([
         tabService.getAllTabs(),
         storageService.getSavedItems()
       ]);
-      setTabs(fetchedTabs);
       setSavedItems(fetchedSaved);
+
+      // Deduplicate: Exclude tabs that are already saved
+      const uniqueTabs = fetchedTabs.filter(t => !fetchedSaved.some(s => s.url === t.url));
+      setTabs(uniqueTabs);
+
       setLoading(false);
 
       // Pin the extension tab for easy access
@@ -38,7 +46,9 @@ const App: React.FC = () => {
         await tabService.pinTab(current.id, true);
       }
     };
-    init();
+
+    // Initial load
+    loadData();
   }, []);
 
   // Listen for tab removal to keep list in sync
@@ -207,12 +217,26 @@ const App: React.FC = () => {
             // Logic for skip
             handleAction(ActionType.SKIP);
              break;
+        case 'd':
+          setView('list');
+          break;
+        case 'r':
+          setView('review');
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [loading, isFinished, processing, isNoteModalOpen, currentTab]); // Dependencies crucial for closure context
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loading, isFinished, processing, isNoteModalOpen, currentTab, view]);
+
+  // --- AUTO REFRESH ON VIEW CHANGE ---
+  useEffect(() => {
+    if (view === 'review') {
+      handleRefresh();
+    }
+  }, [view]);
 
 
   // --- RENDER ---
@@ -224,8 +248,11 @@ const App: React.FC = () => {
       tabService.getAllTabs(),
       storageService.getSavedItems()
     ]);
-    setTabs(fetchedTabs);
     setSavedItems(fetchedSaved);
+
+    // Deduplicate on refresh too
+    const uniqueTabs = fetchedTabs.filter(t => !fetchedSaved.some(s => s.url === t.url));
+    setTabs(uniqueTabs);
     setLoading(false);
   };
 
@@ -288,7 +315,7 @@ const App: React.FC = () => {
               onClick={() => setView('list')}
               className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-medium transition-colors border border-zinc-700"
             >
-              View Dashboard
+              View Your Tabs
             </button>
           </div>
         )}

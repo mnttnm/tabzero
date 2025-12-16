@@ -8,14 +8,16 @@ export const getAllTabs = async (): Promise<TabData[]> => {
   if (isExtension) {
     return new Promise((resolve) => {
       chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => {
-        // Filter out the extension tab itself if possible, but for simplicity keep all
-        const mapped = tabs.map(t => ({
-          id: t.id || 0,
-          title: t.title || 'Untitled',
-          url: t.url || '',
-          favIconUrl: t.favIconUrl,
-          windowId: t.windowId
-        }));
+        // Filter out the extension tab itself
+        const mapped = tabs
+            .filter(t => !t.url.startsWith('chrome-extension://'))
+            .map(t => ({
+              id: t.id || 0,
+              title: t.title || 'Untitled',
+              url: t.url || '',
+              favIconUrl: t.favIconUrl,
+              windowId: t.windowId
+            }));
         resolve(mapped);
       });
     });

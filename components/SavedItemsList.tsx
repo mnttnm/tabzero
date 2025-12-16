@@ -17,10 +17,20 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
+    const filtered = items.filter(item => {
       if (filter === 'all') return true;
       if (filter === 'favorite') return item.favorite;
       return item.type === filter;
+    });
+
+    // Custom Sort: Fav+Note -> Fav -> Note -> Remaining
+    return filtered.sort((a, b) => {
+      const aScore = (a.favorite ? 2 : 0) + (a.note ? 1 : 0);
+      const bScore = (b.favorite ? 2 : 0) + (b.note ? 1 : 0);
+
+      if (aScore !== bScore) return bScore - aScore; // Higher score first
+
+      return b.timestamp - a.timestamp; // Then by time
     });
   }, [items, filter]);
 
@@ -41,7 +51,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
           break;
         case 'Enter':
           if (selectedIndex >= 0 && selectedIndex < filteredItems.length) {
-            tabService.openOrSwitchToUrl(filteredItems[selectedIndex].url);
+            handleOpenItem(filteredItems[selectedIndex]);
           }
           break;
         case 'f':
@@ -66,9 +76,31 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
     onUpdateItems(newItems);
   };
 
-  const handleOpenAll = () => {
+  const handleOpenItem = async (item: SavedItem) => {
+    // Open the url
+    await tabService.openOrSwitchToUrl(item.url);
+    // Remove from storage
+    await storageService.deleteItem(item.id);
+    // Update local state
+    const newItems = items.filter(i => i.id !== item.id);
+    onUpdateItems(newItems);
+  };
+
+  const handleOpenAll = async () => {
     const urls = filteredItems.map(i => i.url);
-    tabService.openTabsInNewWindow(urls);
+    await tabService.openTabsInNewWindow(urls);
+
+    // Remove all opened items
+    // We filter out the IDs of items we just opened
+    const idsToRemove = new Set(filteredItems.map(i => i.id));
+
+    // Iterate delete for storage consistency
+    for (const item of filteredItems) {
+      await storageService.deleteItem(item.id);
+    }
+
+    const newItems = items.filter(i => !idsToRemove.has(i.id));
+    onUpdateItems(newItems);
   };
 
   const getTypeIcon = (type: string) => {
@@ -176,7 +208,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
 
                     <a
                       href="#"
-                      onClick={(e) => { e.preventDefault(); tabService.openOrSwitchToUrl(item.url); }}
+                    onClick={(e) => { e.preventDefault(); handleOpenItem(item); }}
                       className="text-xs text-zinc-500 hover:text-primary truncate block mb-2 w-full hover:underline font-mono"
                     >
                       {item.url}
@@ -198,9 +230,9 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
 
                   <div className="flex flex-col gap-2 shrink-0">
                     <button 
-                      onClick={(e) => { e.stopPropagation(); tabService.openOrSwitchToUrl(item.url); }}
+                    onClick={(e) => { e.stopPropagation(); handleOpenItem(item); }}
                       className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors border border-zinc-800"
-                      title="Open Tab [Enter]"
+                    title="Open Tab and Remove from List [Enter]"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </button>

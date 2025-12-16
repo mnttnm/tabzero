@@ -37,24 +37,18 @@ export const Navbar: React.FC<NavbarProps> = ({ view, setView, onRefresh, onHard
           }`}
         >
           <LayoutDashboard className="w-3.5 h-3.5" />
-          Dashboard
+          Your Tabs
         </button>
       </div>
 
       <div className="flex items-center gap-2">
          <button
             onClick={onRefresh}
-            title="Refresh Tabs List"
-            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+          title="Refresh Tabs List"
+          className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-800/20"
           >
-            <RotateCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onHardRefresh}
-            title="Reload Extension"
-            className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors group"
-          >
-            <RefreshCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+          <RotateCw className="w-3.5 h-3.5" />
+          <span className="text-xs font-medium">Refresh</span>
           </button>
       </div>
     </div>
