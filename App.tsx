@@ -9,6 +9,7 @@ import { ReviewControls } from './components/ReviewControls';
 import { NoteModal } from './components/NoteModal';
 import { Navbar } from './components/Navbar';
 import { SavedItemsList } from './components/SavedItemsList';
+import { SettingsModal } from './components/SettingsModal';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [view, setView] = useState<'review' | 'list'>('review');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Load tabs and saved items on mount
   useEffect(() => {
@@ -72,15 +74,19 @@ const App: React.FC = () => {
   const isFinished = tabs.length === 0 || currentIndex >= tabs.length;
 
   // Handles moving to the next tab after an action
-  const advance = useCallback(() => {
-    // Determine next index. If we remove the current item, we essentially stay at same index (unless it was last)
-    // But since we are likely modifying the array, let's just remove the current item from list
-    setTabs(prev => prev.filter((_, idx) => idx !== currentIndex));
-    // Reset index not needed if we remove item at currentIndex, subsequent items shift up.
-    // However, ensure we don't go out of bounds.
+  const advance = useCallback((tabIdToRemove?: number) => {
+    // Optimistic removal: Remove by ID to avoid race conditions with background listener
+    // (If we removed by index, and background listener already removed it, we'd delete the WRONG tab)
+    if (tabIdToRemove) {
+      setTabs(prev => prev.filter(t => t.id !== tabIdToRemove));
+    } else {
+      // Fallback: Remove by index if no ID provided (should only happen if logic is missed)
+      setTabs(prev => prev.filter((_, idx) => idx !== currentIndex));
+    }
+
+    // Reset index logic
     if (currentIndex >= tabs.length - 1) {
-        // Last item was processed
-        setCurrentIndex(0); // Actually irrelevant if array is empty
+      setCurrentIndex(0);
     }
   }, [currentIndex, tabs.length]);
 
@@ -122,14 +128,14 @@ const App: React.FC = () => {
           setProcessing(false); // Stop processing so modal can open
           return; // Exit here, handled by modal callback
 
-        case ActionType.SUMMARIZE:
-          // Visual feedback for AI
-          newItem.type = 'summary';
-          const summary = await geminiService.summarizeTab(currentTab);
-          newItem.summary = summary;
-          await storageService.saveItem(newItem);
-          await tabService.closeTab(currentTab.id);
-          break;
+        // case ActionType.SUMMARIZE:
+        //   // Visual feedback for AI
+        //   newItem.type = 'summary';
+        //   const summary = await geminiService.summarizeTab(currentTab);
+        //   newItem.summary = summary;
+        //   await storageService.saveItem(newItem);
+        //   await tabService.closeTab(currentTab.id);
+        //   break;
 
         case ActionType.OPEN:
           // Just open/switch and do nothing else (don't advance)
@@ -150,10 +156,13 @@ const App: React.FC = () => {
           setSavedItems(updated);
       }
       
-      advance();
+      advance(currentTab.id);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Action failed", error);
+      if (error.message === "MISSING_API_KEY") {
+        setIsSettingsOpen(true);
+      }
     } finally {
        if (action !== ActionType.NOTE) setProcessing(false);
     }
@@ -181,16 +190,30 @@ const App: React.FC = () => {
     setSavedItems(updated);
     
     setProcessing(false);
-    advance();
+    advance(currentTab.id);
   };
 
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (loading || isFinished || processing || isNoteModalOpen) return;
+      // Global check for blocking states
+      if (loading || processing || isNoteModalOpen) return;
       
-      // Ignore if typing in an input (though we don't have many here except modal)
+      // Ignore if typing in an input
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      // Navigation Shortcuts (Allowed even if finished)
+      if (e.key.toLowerCase() === 'd') {
+        setView('list');
+        return;
+      }
+      if (e.key.toLowerCase() === 'r') {
+        setView('review');
+        return;
+      }
+
+      // Action Shortcuts (Blocked if finished)
+      if (isFinished) return;
 
       switch (e.key.toLowerCase()) {
         case 'x':
@@ -215,19 +238,12 @@ const App: React.FC = () => {
           break;
         case 'arrowright':
             // Logic for skip
-            handleAction(ActionType.SKIP);
-             break;
-        case 'd':
-          setView('list');
-          break;
-        case 'r':
-          setView('review');
+          handleAction(ActionType.SKIP);
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loading, isFinished, processing, isNoteModalOpen, currentTab, view]);
 
@@ -265,7 +281,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-screen w-full flex-col bg-background">
-        <Navbar view={view} setView={setView} onRefresh={() => { }} onHardRefresh={handleHardRefresh} />
+        <Navbar view={view} setView={setView} onRefresh={() => { }} onHardRefresh={handleHardRefresh} onOpenSettings={() => setIsSettingsOpen(true)} />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -283,6 +299,7 @@ const App: React.FC = () => {
         setView={setView}
         onRefresh={handleRefresh}
         onHardRefresh={handleHardRefresh}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* CONTENT AREA */}
@@ -363,6 +380,11 @@ const App: React.FC = () => {
         isOpen={isNoteModalOpen} 
         onConfirm={handleNoteConfirm} 
         onCancel={() => { setIsNoteModalOpen(false); setProcessing(false); }} 
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => { setIsSettingsOpen(false); setProcessing(false); }}
       />
     </div>
   );
