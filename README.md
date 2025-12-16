@@ -1,20 +1,73 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# TabZero - AI Tab Triage
 
-# Run and deploy your AI Studio app
+Review, close, note, and summarize your open tabs. TabZero helps you declare "Tab Bankruptcy" and clear your mental clutter with a focused, gamified review process.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1vmxB_ISCkBgUzHk3W8hYmyJwY8EEEgkO
+- **Focused Review**: Review tabs one by one in a distraction-free interface.
+- **AI Summaries**: Get concise summaries of tab content using Google Gemini.
+- **Quick Actions**:
+  - Keep (Open)
+  - Close
+  - Save for Later
+  - AI Summary
+  - Add Note
+  - Skip
+- **Tab Persistence**: TabZero stays open and pinned while you review.
+- **Background Sync**: Tabs closed in other windows are automatically removed from your review queue.
+- **Keyboard Shortcuts**: Fly through your tabs without touching the mouse.
 
-## Run Locally
+## Keyboard Shortcuts
 
-**Prerequisites:**  Node.js
+| Action | Shortcut |
+|--------|----------|
+| Open Extension | `Cmd+Shift+E` / `Ctrl+Shift+E` |
+| Close Tab | `X`, `Delete`, `Backspace` |
+| Save for Later | `S` |
+| AI Summary | `A` |
+| Add Note | `N` |
+| Open Tab | `O` |
+| Skip Tab | `Right Arrow` |
 
+## Installation
+
+1. Clone this repository.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Build the extension:
+   ```bash
+   npm run build
+   ```
+4. Open Chrome and navigate to `chrome://extensions`.
+5. Enable **Developer mode** (toggle in top right).
+6. Click **Load unpacked**.
+7. Select the `dist` folder in this project directory.
+
+## Development
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+2. Create `.env.local` and add your Gemini API key:
+   ```
+   VITE_GEMINI_API_KEY=your_api_key_here
+   ```
+3. Run dev server (for UI testing):
+   ```bash
+   npm run dev
+   ```
+4. Build for production:
+   ```bash
+   npm run build
+   ```
+
+## Tech Stack
+
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Google Gemini API
+- Chrome Extensions key API
