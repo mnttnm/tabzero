@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TabZero",
+  "name": "Tab Triage",
   "version": "1.0.0",
-  "description": "Review, close, note, and summarize your open tabs.",
+  "description": "Review, close, and note your open tabs.",
   "permissions": [
     "tabs",
     "storage",
@@ -13,7 +13,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_title": "TabZero - Tab Triage",
+    "default_title": "Tab Triage",
     "default_icon": {
       "16": "icon-16.png",
       "48": "icon-48.png",
@@ -26,7 +26,7 @@
         "default": "Ctrl+Shift+E",
         "mac": "Command+Shift+E"
       },
-      "description": "Open TabZero"
+      "description": "Open Tab Triage"
     }
   },
   "background": {

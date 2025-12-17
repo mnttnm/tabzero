@@ -2,7 +2,7 @@ import { SavedItem } from '../types';
 
 declare const chrome: any;
 
-const STORAGE_KEY = 'tabzero_saved_items';
+const STORAGE_KEY = 'tab_triage_saved_items';
 
 const isExtension = typeof chrome !== 'undefined' && !!chrome.storage;
 
