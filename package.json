@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run copy-extension-files",
-    "copy-extension-files": "cp manifest.json dist/ && cp background.js dist/ && cp icon.svg dist/",
+    "copy-extension-files": "cp manifest.json dist/ && cp background.js dist/ && cp icon-*.png dist/",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -15,25 +15,25 @@ export const TabCard: React.FC<TabCardProps> = ({ tab, isActive }) => {
       className={`
         relative w-full max-w-2xl bg-surface rounded-2xl border 
         transition-all duration-500 ease-out transform
-        ${isActive ? 'opacity-100 scale-100 border-zinc-700 shadow-2xl' : 'opacity-0 scale-95 border-transparent absolute'}
+        ${isActive ? 'opacity-100 scale-100 border-zinc-200 dark:border-zinc-700 shadow-2xl' : 'opacity-0 scale-95 border-transparent absolute'}
       `}
     >
       {/* Header / Top Bar */}
-      <div className="flex items-center gap-3 p-4 border-b border-zinc-800">
+      <div className="flex items-center gap-3 p-4 border-b border-zinc-200 dark:border-zinc-800">
         {tab.favIconUrl ? (
-          <img src={tab.favIconUrl} alt="" className="w-6 h-6 rounded-sm" />
+          <img src={tab.favIconUrl} alt="" className="w-6 h-6 rounded-sm bg-white/10 dark:bg-zinc-800 p-0.5" />
         ) : (
           <Globe className="w-6 h-6 text-zinc-500" />
         )}
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-white truncate">{tab.title}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white truncate">{tab.title}</h2>
           <p className="text-sm text-zinc-500 truncate">{tab.url}</p>
         </div>
         <a 
           href={tab.url} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
+          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
           title="Open in new tab"
         >
           <ExternalLink className="w-5 h-5 text-zinc-400" />
@@ -41,38 +41,54 @@ export const TabCard: React.FC<TabCardProps> = ({ tab, isActive }) => {
       </div>
 
       {/* Preview Area */}
-      <div className="relative aspect-video w-full bg-zinc-900 border-t border-zinc-800 overflow-hidden group flex items-center justify-center">
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 opacity-100" />
+      <div className="relative aspect-video w-full bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 overflow-hidden group flex items-center justify-center">
         
-        {/* Large Favicon / Icon */}
-        <div className="relative z-10 flex flex-col items-center gap-4 transition-transform duration-500 group-hover:scale-110">
-            {tab.favIconUrl ? (
-              <img 
-                src={tab.favIconUrl} 
-                alt={tab.title} 
-                className="w-20 h-20 rounded-xl shadow-2xl"
-                onError={(e) => {
-                  // Fallback if favicon fails to load
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-            ) : null}
-            <div className={`
-              ${tab.favIconUrl ? 'hidden' : 'flex'} 
-              w-20 h-20 items-center justify-center rounded-xl bg-zinc-800 shadow-2xl border border-zinc-700
-            `}>
-               <Globe className="w-10 h-10 text-zinc-500" />
+        {/* Case 1: Rich Preview Image */}
+        {tab.previewImage ? (
+          <div className="absolute inset-0 p-4 flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+            {/* Blurred Background for Ambiance */}
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-110"
+              style={{ backgroundImage: `url(${tab.previewImage})` }}
+            />
+
+            {/* Main Image - Contain/Fit */}
+            <img
+              src={tab.previewImage}
+              alt={tab.title}
+              className="relative z-10 w-full h-full object-contain rounded-lg shadow-lg"
+            />
+          </div>
+        ) : (
+          /* Case 2: Gradient Fallback */
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background: tab.gradient || 'linear-gradient(135deg, var(--surface) 0%, var(--background) 100%)',
+              opacity: 1
+            }}
+          >
+            {/* Large Central Icon - Wrapped in white/light container for visibility */}
+            <div className="relative z-10 p-4 rounded-2xl bg-white/20 backdrop-blur-md shadow-2xl border border-white/30">
+              {tab.favIconUrl ? (
+                <img
+                  src={tab.favIconUrl} 
+                    alt=""
+                    className="w-12 h-12 object-contain p-1 bg-white rounded-xl shadow-sm"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+
+                {/* Fallback Globe Icon */}
+                <div className={`${tab.favIconUrl ? 'hidden' : 'flex'} items-center justify-center`}>
+                  <Globe className="w-12 h-12 text-zinc-200" />
+                </div>
+              </div>
             </div>
-            
-            {/* Domain Pill */}
-            <div className="px-3 py-1 rounded-full bg-zinc-800/50 border border-zinc-700/50 backdrop-blur-sm">
-                <span className="text-xs text-zinc-400 font-medium">
-                    {new URL(tab.url).hostname.replace('www.', '')}
-                </span>
-            </div>
-        </div>
+        )}
       </div>
     </div>
   );

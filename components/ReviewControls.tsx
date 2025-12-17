@@ -14,49 +14,49 @@ export const ReviewControls: React.FC<ReviewControlsProps> = ({ onAction, disabl
       label: 'Open',
       sub: '(o)',
       icon: <ExternalLink className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-emerald-600 hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-emerald-600 hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
     {
       action: ActionType.CLOSE,
       label: 'Close',
       sub: '(x)',
       icon: <X className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-danger hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-danger hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
     {
       action: ActionType.SAVE,
       label: 'Later',
       sub: '(s)',
       icon: <Clock className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-primary hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-primary hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
     {
       action: ActionType.FAVORITE,
       label: 'Favorite',
       sub: '(f)',
       icon: <Star className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-yellow-500 hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-yellow-500 hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
-    {
-      action: ActionType.SUMMARIZE,
-      label: 'AI Summary',
-      sub: '(a)',
-      icon: <Sparkles className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-purple-600 hover:text-white text-zinc-300 border-zinc-700',
-    },
+    // {
+    //   action: ActionType.SUMMARIZE,
+    //   label: 'AI Summary',
+    //   sub: '(a)',
+    //   icon: <Sparkles className="w-5 h-5" />,
+    //   style: 'bg-zinc-800 hover:bg-purple-600 hover:text-white text-zinc-300 border-zinc-700',
+    // },
     {
       action: ActionType.NOTE,
       label: 'Note',
       sub: '(n)',
       icon: <StickyNote className="w-5 h-5" />,
-      style: 'bg-zinc-800 hover:bg-warning hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-warning hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
     {
       action: ActionType.SKIP,
       label: 'Skip',
       sub: '(→)',
       icon: <ExternalLink className="w-5 h-5 rotate-90" />, // Using rotated external link as arrow for now, or just ArrowRight if I import it
-      style: 'bg-zinc-800 hover:bg-zinc-600 hover:text-white text-zinc-300 border-zinc-700',
+      style: 'bg-white dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600 hover:text-zinc-900 dark:hover:text-white text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 shadow-sm',
     },
   ];
 
@@ -73,7 +73,7 @@ export const ReviewControls: React.FC<ReviewControlsProps> = ({ onAction, disabl
             ${btn.style}
           `}
         >
-          <div className="mb-2 p-2 rounded-full bg-white/5 group-hover:bg-white/20 transition-colors">
+          <div className="mb-2 p-2 rounded-full bg-zinc-100 dark:bg-white/5 group-hover:bg-white/40 transition-colors">
             {btn.icon}
           </div>
           <span className="text-sm font-medium">{btn.label}</span>

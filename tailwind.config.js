@@ -9,12 +9,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#09090b',
-        surface: '#18181b',
-        primary: '#3b82f6',
-        danger: '#ef4444',
-        success: '#22c55e',
-        warning: '#f59e0b',
+        background: 'var(--background)',
+        surface: 'var(--surface)',
+        primary: 'var(--primary)',
+        danger: 'var(--danger)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

@@ -1,20 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 import { TabData } from "../types";
-
-// In a real extension, this should be user-configurable or fetched from a secure backend.
-// For this demo, we assume the environment variable is set during build.
-const API_KEY = process.env.API_KEY || ''; 
-
-let ai: GoogleGenAI | null = null;
-
-if (API_KEY) {
-  ai = new GoogleGenAI({ apiKey: API_KEY });
-}
+import { getApiKey } from "./settingsService";
 
 export const summarizeTab = async (tab: TabData): Promise<string> => {
-  if (!ai) {
-    return "API Key missing. Please configure your Gemini API Key.";
+  const apiKey = await getApiKey();
+
+  if (!apiKey) {
+    throw new Error("MISSING_API_KEY");
   }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const prompt = `
@@ -32,9 +27,9 @@ export const summarizeTab = async (tab: TabData): Promise<string> => {
       contents: prompt,
     });
 
-    return response.text || "No summary generated.";
+    return response.text as string || "No summary generated.";
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Failed to generate summary. Please try again.";
+    throw error; // Re-throw so UI can handle it if needed, or fallback
   }
 };

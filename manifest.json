@@ -6,11 +6,19 @@
   "permissions": [
     "tabs",
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "action": {
     "default_title": "TabZero - Tab Triage",
-    "default_icon": "icon.svg"
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
   },
   "commands": {
     "_execute_action": {
@@ -25,8 +33,8 @@
     "service_worker": "background.js"
   },
   "icons": {
-    "16": "icon.svg",
-    "48": "icon.svg",
-    "128": "icon.svg"
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   }
 }

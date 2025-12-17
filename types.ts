@@ -4,6 +4,9 @@ export interface TabData {
   url: string;
   favIconUrl?: string;
   windowId?: number;
+  discarded?: boolean;
+  previewImage?: string;
+  gradient?: string;
 }
 
 export enum ActionType {
