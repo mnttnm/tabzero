@@ -1,4 +1,4 @@
-// Background service worker for TabZero
+// Background service worker for Tab Triage
 // Opens the app in a new tab when the extension icon is clicked.
 
 chrome.action.onClicked.addListener(async () => {

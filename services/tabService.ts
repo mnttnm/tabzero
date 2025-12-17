@@ -7,6 +7,22 @@ const isExtension = typeof chrome !== 'undefined' && !!chrome.tabs;
 import * as metadataService from './metadataService';
 import * as colorUtils from '../utils/colorUtils';
 
+// Observer pattern for updates
+type TabUpdateCallback = (updatedTab: TabData) => void;
+const subscribers: TabUpdateCallback[] = [];
+
+export const subscribeToUpdates = (callback: TabUpdateCallback): () => void => {
+    subscribers.push(callback);
+    return () => {
+        const index = subscribers.indexOf(callback);
+        if (index > -1) subscribers.splice(index, 1);
+    };
+};
+
+const notifySubscribers = (updatedTab: TabData) => {
+    subscribers.forEach(cb => cb(updatedTab));
+};
+
 export const getAllTabs = async (): Promise<TabData[]> => {
   if (isExtension) {
     return new Promise((resolve) => {
@@ -21,61 +37,16 @@ export const getAllTabs = async (): Promise<TabData[]> => {
               url: t.url || '',
               favIconUrl: t.favIconUrl,
               windowId: t.windowId,
-              discarded: t.discarded
+              discarded: t.discarded,
+              // Initial gradient fallback (will be updated if needed)
+              gradient: 'linear-gradient(135deg, #27272a 0%, #18181b 100%)'
         }));
 
-        // Enrich with metadata/gradients in parallel
-        // We do this concurrently to not block the initial UI render too long, 
-        // OR we could return basic data first and then update. 
-        // For simplicity, we await here but it should be fast.
-        // Enrich with metadata/gradients in parallel with concurrency limit
-        // We process in batches to avoid overwhelming the network/browser and hitting rate limits (429)
-        const enriched: TabData[] = [];
-        const BATCH_SIZE = 5;
+        // Return basic data IMMEDIATELY
+        resolve(mapped);
 
-        for (let i = 0; i < mapped.length; i += BATCH_SIZE) {
-            const batch = mapped.slice(i, i + BATCH_SIZE);
-            
-            // Process the current batch
-            const batchResults = await Promise.all(batch.map(async (tab) => {
-                try {
-                    // Skip metadata extraction for discarded (suspended) tabs to avoid errors/hangs
-                    if (tab.discarded) {
-                         // Just use adaptive gradient
-                         if (tab.favIconUrl) {
-                            const dominant = await colorUtils.getDominantColor(tab.favIconUrl);
-                            const gradient = colorUtils.getGradientFromColor(dominant);
-                            return { ...tab, gradient };
-                        }
-                        return { ...tab, gradient: 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' };
-                    }
-
-                    // 1. Try to get Open Graph Metadata
-                    const metadata = await metadataService.getTabMetadata(tab.id);
-                    if (metadata.image) {
-                        return { ...tab, previewImage: metadata.image };
-                    }
-
-                    // 2. Fallback: Adaptive Gradient from Favicon
-                    if (tab.favIconUrl) {
-                        const dominant = await colorUtils.getDominantColor(tab.favIconUrl);
-                        const gradient = colorUtils.getGradientFromColor(dominant);
-                        return { ...tab, gradient };
-                    }
-                    
-                    // 3. Generic Fallback
-                    return { ...tab, gradient: 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' };
-
-                } catch (e) {
-                    console.warn("Failed to enrich tab", tab.id, e);
-                    return { ...tab, gradient: 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' };
-                }
-            }));
-            
-            enriched.push(...batchResults);
-        }
-
-        resolve(enriched);
+        // Start background enrichment
+        enrichTabsInBackground(mapped);
       });
     });
   } else {
@@ -118,6 +89,47 @@ export const getAllTabs = async (): Promise<TabData[]> => {
       },
     ];
   }
+};
+
+const enrichTabsInBackground = async (tabs: TabData[]) => {
+    // Process in batches
+    const BATCH_SIZE = 3; 
+    
+    // We don't await the whole loop, this runs "detached" in effect
+    for (let i = 0; i < tabs.length; i += BATCH_SIZE) {
+        const batch = tabs.slice(i, i + BATCH_SIZE);
+        
+        await Promise.all(batch.map(async (tab) => {
+             // 1. Initial Gradient check (fast)
+             if (tab.favIconUrl && !tab.gradient) { // check if we want to update gradient? Actually mapped has default.
+                 // Let's get a better gradient if posssible
+                 try {
+                     const dominant = await colorUtils.getDominantColor(tab.favIconUrl);
+                     const gradient = colorUtils.getGradientFromColor(dominant);
+                     notifySubscribers({ ...tab, gradient });
+                     // Update our local ref for next steps
+                     tab.gradient = gradient; 
+                 } catch (e) {
+                     // ignore
+                 }
+             }
+
+            // 2. Metadata (slower)
+             if (!tab.discarded) {
+                try {
+                    const metadata = await metadataService.getTabMetadata(tab.id);
+                    if (metadata.image) {
+                        notifySubscribers({ ...tab, previewImage: metadata.image });
+                    }
+                } catch (e) {
+                    console.warn(`Background fetch failed for ${tab.id}`, e);
+                }
+             }
+        }));
+        
+        // Small delay between batches to yield to UI
+        await new Promise(r => setTimeout(r, 100));
+    }
 };
 
 export const closeTab = async (tabId: number): Promise<void> => {

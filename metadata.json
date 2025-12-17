@@ -1,5 +1,5 @@
 {
-  "name": "TabZero - AI Tab Triage",
+  "name": "Tab Triage",
   "description": "A focused interface to review open tabs, close them, add notes, or summarize them using Gemini AI.",
   "requestFramePermissions": []
 }

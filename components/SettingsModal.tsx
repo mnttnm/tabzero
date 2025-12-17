@@ -62,7 +62,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 
                 <div className="p-4 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-xl space-y-2"> 
                     <p className="text-xs text-indigo-700 dark:text-indigo-200">
-                        TabZero uses Google's Gemini AI to summarize your tabs. 
+                Tab Triage uses Google's Gemini AI to summarize your tabs. 
                         To enable this feature, you need to provide your own API Key.
                     </p>
                     <a 

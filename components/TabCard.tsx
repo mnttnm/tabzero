@@ -43,33 +43,15 @@ export const TabCard: React.FC<TabCardProps> = ({ tab, isActive }) => {
       {/* Preview Area */}
       <div className="relative aspect-video w-full bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 overflow-hidden group flex items-center justify-center">
         
-        {/* Case 1: Rich Preview Image */}
-        {tab.previewImage ? (
-          <div className="absolute inset-0 p-4 flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-            {/* Blurred Background for Ambiance */}
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-110"
-              style={{ backgroundImage: `url(${tab.previewImage})` }}
-            />
-
-            {/* Main Image - Contain/Fit */}
-            <img
-              src={tab.previewImage}
-              alt={tab.title}
-              className="relative z-10 w-full h-full object-contain rounded-lg shadow-lg"
-            />
-          </div>
-        ) : (
-          /* Case 2: Gradient Fallback */
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{
-              background: tab.gradient || 'linear-gradient(135deg, var(--surface) 0%, var(--background) 100%)',
-              opacity: 1
+        {/* Layer 1: Gradient Fallback (Always rendered as base) */}
+        <div
+          className="absolute inset-0 flex items-center justify-center transition-opacity duration-700"
+          style={{
+               background: tab.gradient || 'linear-gradient(135deg, var(--surface) 0%, var(--background) 100%)',
             }}
           >
-            {/* Large Central Icon - Wrapped in white/light container for visibility */}
-            <div className="relative z-10 p-4 rounded-2xl bg-white/20 backdrop-blur-md shadow-2xl border border-white/30">
+          {/* Large Central Icon for Gradient */}
+          <div className="relative z-10 p-4 rounded-2xl bg-white/20 backdrop-blur-md shadow-2xl border border-white/30">
               {tab.favIconUrl ? (
                 <img
                   src={tab.favIconUrl} 
@@ -82,14 +64,43 @@ export const TabCard: React.FC<TabCardProps> = ({ tab, isActive }) => {
                   />
                 ) : null}
 
-                {/* Fallback Globe Icon */}
+            {/* Fallback Globe Icon */}
                 <div className={`${tab.favIconUrl ? 'hidden' : 'flex'} items-center justify-center`}>
                   <Globe className="w-12 h-12 text-zinc-200" />
                 </div>
               </div>
-            </div>
+        </div>
+
+        {/* Layer 2: Rich Preview Image (Fades in on top) */}
+        {tab.previewImage && (
+          <ImageFadeIn src={tab.previewImage} alt={tab.title} />
         )}
       </div>
     </div>
   );
 };
+
+// Subcomponent to handle individual image loading state cleanly
+const ImageFadeIn: React.FC<{ src: string, alt: string }> = ({ src, alt }) => {
+  const [loaded, setLoaded] = React.useState(false);
+
+  return (
+    <div className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${loaded ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="absolute inset-0 p-4 flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        {/* Blurred Background for Ambiance */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-110"
+          style={{ backgroundImage: `url(${src})` }}
+        />
+
+        {/* Main Image - Contain/Fit */}
+        <img
+          src={src}
+          alt={alt}
+          className="relative z-10 w-full h-full object-contain rounded-lg shadow-lg"
+          onLoad={() => setLoaded(true)}
+        />
+      </div>
+    </div>
+  );
+}

@@ -10,6 +10,7 @@ import { NoteModal } from './components/NoteModal';
 import { Navbar } from './components/Navbar';
 import { SavedItemsList } from './components/SavedItemsList';
 import { SettingsModal } from './components/SettingsModal';
+
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [view, setView] = useState<'review' | 'list'>('review');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [feedback, setFeedback] = useState<{ action: ActionType | null, visible: boolean }>({ action: null, visible: false });
 
   // Load tabs and saved items on mount
   useEffect(() => {
@@ -70,6 +72,20 @@ const App: React.FC = () => {
     return unsubscribe;
   }, [currentIndex]);
 
+  // Listen for background metadata updates (preview images / gradients)
+  useEffect(() => {
+    const unsubscribe = tabService.subscribeToUpdates((updatedTab) => {
+      setTabs(prev => prev.map(t => {
+        if (t.id === updatedTab.id) {
+          // Merge the update
+          return { ...t, ...updatedTab };
+        }
+        return t;
+      }));
+    });
+    return unsubscribe;
+  }, []);
+
   const currentTab = tabs[currentIndex];
   const isFinished = tabs.length === 0 || currentIndex >= tabs.length;
 
@@ -92,6 +108,14 @@ const App: React.FC = () => {
 
   const handleAction = async (action: ActionType, extraData?: string) => {
     if (!currentTab || processing) return;
+
+    // Trigger button feedback
+    setFeedback({ action, visible: true });
+    // Clear feedback quickly for "press" effect
+    setTimeout(() => {
+      setFeedback(prev => ({ ...prev, visible: false }));
+    }, 200);
+
     setProcessing(true);
 
     try {
@@ -360,7 +384,11 @@ const App: React.FC = () => {
               </div>
             )}
 
-            <ReviewControls onAction={handleAction} disabled={processing} />
+            <ReviewControls
+              onAction={handleAction}
+              disabled={processing}
+              activeAction={feedback.visible ? feedback.action : null}
+            />
 
             {/* Shortcuts Help */}
             <div className="mt-12 flex gap-8 text-xs text-zinc-600 font-mono">
