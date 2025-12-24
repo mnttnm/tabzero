@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SavedItem, SavedItemStatus } from '../types';
 import * as tabService from '../services/tabService';
 import * as storageService from '../services/storageService';
-import { Trash2, ExternalLink, FileText, Sparkles, Clock, Star, Layout, Filter, AlertCircle } from 'lucide-react';
+import { Trash2, ExternalLink, FileText, Sparkles, Clock, Star, Layout, Filter, AlertCircle, X, Undo2, Search } from 'lucide-react';
 
 interface SavedItemsListProps {
   items: SavedItem[];
@@ -14,14 +14,30 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
   const [filter, setFilter] = useState<SavedItemStatus>('all');
   const [confirmClear, setConfirmClear] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [lastDeletedItem, setLastDeletedItem] = useState<SavedItem | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const undoTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
-    const filtered = items.filter(item => {
+    let filtered = items.filter(item => {
       if (filter === 'all') return true;
       if (filter === 'favorite') return item.favorite;
       return item.type === filter;
     });
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(query) ||
+        item.url.toLowerCase().includes(query) ||
+        item.note?.toLowerCase().includes(query) ||
+        item.summary?.toLowerCase().includes(query) ||
+        item.tags?.some(tag => tag.toLowerCase().includes(query))
+      );
+    }
 
     // Custom Sort: Fav+Note -> Fav -> Note -> Remaining
     return filtered.sort((a, b) => {
@@ -32,7 +48,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
 
       return b.timestamp - a.timestamp; // Then by time
     });
-  }, [items, filter]);
+  }, [items, filter, searchQuery]);
 
   // --- Keyboard Navigation ---
   useEffect(() => {
@@ -57,6 +73,24 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
         case 'f':
           if (selectedIndex >= 0 && selectedIndex < filteredItems.length) {
             toggleFavorite(filteredItems[selectedIndex]);
+          }
+          break;
+        case 'Delete':
+        case 'Backspace':
+          if (selectedIndex >= 0 && selectedIndex < filteredItems.length) {
+            handleDeleteItem(e, filteredItems[selectedIndex]);
+          }
+          break;
+        case '/':
+          if (document.activeElement !== searchInputRef.current) {
+            e.preventDefault();
+            searchInputRef.current?.focus();
+          }
+          break;
+        case 'Escape':
+          if (document.activeElement === searchInputRef.current) {
+            searchInputRef.current.blur();
+            setSearchQuery('');
           }
           break;
       }
@@ -84,6 +118,58 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
     // Update local state
     const newItems = items.filter(i => i.id !== item.id);
     onUpdateItems(newItems);
+  };
+
+  const handleDeleteItem = async (e: React.MouseEvent | KeyboardEvent | null, item: SavedItem) => {
+    if (e) e.stopPropagation();
+
+    // Track for undo
+    setLastDeletedItem(item);
+    setShowUndo(true);
+
+    // Clear existing timer if any
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+    // Set new timer to hide undo
+    undoTimerRef.current = setTimeout(() => {
+      setShowUndo(false);
+      setLastDeletedItem(null);
+    }, 5000);
+
+    // Remove from storage
+    await storageService.deleteItem(item.id);
+    // Update local state
+    const newItems = items.filter(i => i.id !== item.id);
+    onUpdateItems(newItems);
+
+    // Adjust selected index if needed
+    if (selectedIndex >= newItems.length) {
+      setSelectedIndex(newItems.length - 1);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!lastDeletedItem) return;
+
+    // Restore to storage
+    await storageService.saveItem(lastDeletedItem);
+
+    // Update local state
+    const newItems = [lastDeletedItem, ...items];
+    // Re-sort to maintain order (same as fetching logic)
+    const sorted = newItems.sort((a, b) => {
+      const aScore = (a.favorite ? 2 : 0) + (a.note ? 1 : 0);
+      const bScore = (b.favorite ? 2 : 0) + (b.note ? 1 : 0);
+      if (aScore !== bScore) return bScore - aScore;
+      return b.timestamp - a.timestamp;
+    });
+
+    onUpdateItems(sorted);
+
+    // Reset undo state
+    setShowUndo(false);
+    setLastDeletedItem(null);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   };
 
   const handleOpenAll = async () => {
@@ -157,6 +243,46 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
               >
                 <Trash2 className="w-3.5 h-3.5" /> Clear All
               </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className={`w-4 h-4 transition-colors ${searchQuery ? 'text-primary' : 'text-zinc-400 dark:text-zinc-500'}`} />
+          </div>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search tabs, notes, and summaries..."
+            className="
+              block w-full pl-10 pr-12 py-3.5
+              bg-white/50 dark:bg-zinc-900/50 
+              backdrop-blur-sm
+              border border-zinc-200 dark:border-zinc-800 
+              focus:border-primary/50 dark:focus:border-primary/50
+              focus:ring-4 focus:ring-primary/10
+              rounded-2xl transition-all duration-200
+              text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600
+              text-sm
+            "
+          />
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+            {searchQuery ? (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors"
+                title="Clear [Esc]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-1 px-1.5 py-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 pointer-events-none">
+                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">/</span>
+              </div>
             )}
           </div>
         </div>
@@ -247,25 +373,93 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({ items, onClear, 
                     >
                       <Star className={`w-4 h-4 ${item.favorite ? 'fill-yellow-500' : ''}`} />
                     </button>
+                  <button
+                    onClick={(e) => handleDeleteItem(e, item)}
+                    className="p-2 bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-zinc-400 hover:text-red-600 transition-colors border border-zinc-200 dark:border-zinc-800 shadow-sm"
+                    title="Remove from List [Delete]"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   </div>
                 </div>
             </div>
           );
         })}
 
-        {filteredItems.length === 0 && filter !== 'all' && (
-          <div className="text-center py-12">
-            <p className="text-zinc-500 text-sm">No items match the filter '{filter}'.</p>
-            <button onClick={() => setFilter('all')} className="mt-2 text-xs text-primary hover:underline">Clear Filter</button>
+        {filteredItems.length === 0 && (
+          <div className="text-center py-12 bg-zinc-50/50 dark:bg-zinc-900/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+            <div className="flex justify-center mb-4">
+              <Search className="w-10 h-10 text-zinc-300 dark:text-zinc-700" />
+            </div>
+            <p className="text-zinc-500 text-sm">No items match your search or filter.</p>
+            <div className="flex items-center justify-center gap-3 mt-4">
+              {filter !== 'all' && (
+                <button onClick={() => setFilter('all')} className="text-xs text-primary hover:underline font-medium">Clear Filter</button>
+              )}
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-xs text-primary hover:underline font-medium">Clear Search</button>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="text-[10px] text-zinc-600 font-mono">
-          Shortcuts: [↓/↑] Navigate • [Enter] Open • [F] Favorite
+      <div className="mt-8 text-center bg-zinc-50 dark:bg-zinc-900/40 py-4 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50">
+        <p className="text-[10px] text-zinc-500 dark:text-zinc-500 font-mono flex items-center justify-center gap-4">
+          <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border rounded text-[8px]">[/]</kbd> Search</span>
+          <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border rounded text-[8px]">[↓/↑]</kbd> Navigate</span>
+          <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border rounded text-[8px]">[Enter]</kbd> Open</span>
+          <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border rounded text-[8px]">[F]</kbd> Favorite</span>
+          <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border rounded text-[8px]">[Del]</kbd> Remove</span>
         </p>
       </div>
+
+      {/* Undo Toast */}
+      {showUndo && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-500">
+          <div className="
+            flex items-center gap-6 px-5 py-3.5 
+            bg-white/80 dark:bg-zinc-900/80 
+            backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 
+            rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)]
+          ">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                <Trash2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+              </div>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                Item removed from list
+              </p>
+            </div>
+
+            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleUndo}
+                className="
+                  flex items-center gap-2 px-4 py-2 
+                  bg-zinc-900 dark:bg-zinc-100 
+                  text-white dark:text-zinc-900 
+                  rounded-xl text-xs font-bold 
+                  hover:scale-105 active:scale-95
+                  transition-all duration-200
+                "
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                Undo
+              </button>
+              <button
+                onClick={() => setShowUndo(false)}
+                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
