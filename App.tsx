@@ -20,7 +20,10 @@ const App: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
-  const [view, setView] = useState<'review' | 'list'>('review');
+  const [view, setView] = useState<'review' | 'list'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') === 'review' ? 'review' : 'list';
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ action: ActionType | null, visible: boolean }>({ action: null, visible: false });
 
@@ -44,10 +47,13 @@ const App: React.FC = () => {
 
       setLoading(false);
 
-      // Pin the extension tab for easy access
-      const current = await tabService.getCurrentTab();
-      if (current) {
-        await tabService.pinTab(current.id, true);
+      // Pin the extension tab for easy access, but ONLY in review mode (action button)
+      // We don't want to pin every single New Tab (dashboard)
+      if (view === 'review') {
+        const current = await tabService.getCurrentTab();
+        if (current) {
+          await tabService.pinTab(current.id, true);
+        }
       }
     };
 
