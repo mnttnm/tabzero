@@ -1,3 +1,5 @@
+declare const chrome: any;
+
 export const getApiKey = async (): Promise<string | null> => {
   const result = await chrome.storage.sync.get(['geminiApiKey']);
   return result.geminiApiKey || null;

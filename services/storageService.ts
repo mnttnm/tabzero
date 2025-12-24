@@ -3,6 +3,11 @@ import { SavedItem } from '../types';
 declare const chrome: any;
 
 const STORAGE_KEY = 'tab_triage_saved_items';
+const NAVBAR_SETTINGS_KEY = 'navbar_settings';
+
+export interface NavbarSettings {
+  visibilityMode: 'persistent' | 'on-demand';
+}
 
 const isExtension = typeof chrome !== 'undefined' && !!chrome.storage;
 
@@ -121,4 +126,27 @@ export const cleanupDuplicates = async (): Promise<void> => {
     } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
     }
+};
+
+// Navbar settings
+const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
+  visibilityMode: 'persistent',
+};
+
+export const getNavbarSettings = async (): Promise<NavbarSettings> => {
+  if (isExtension) {
+    const result = await chrome.storage.local.get([NAVBAR_SETTINGS_KEY]);
+    return result[NAVBAR_SETTINGS_KEY] || DEFAULT_NAVBAR_SETTINGS;
+  } else {
+    const existing = localStorage.getItem(NAVBAR_SETTINGS_KEY);
+    return existing ? JSON.parse(existing) : DEFAULT_NAVBAR_SETTINGS;
+  }
+};
+
+export const setNavbarSettings = async (settings: NavbarSettings): Promise<void> => {
+  if (isExtension) {
+    await chrome.storage.local.set({ [NAVBAR_SETTINGS_KEY]: settings });
+  } else {
+    localStorage.setItem(NAVBAR_SETTINGS_KEY, JSON.stringify(settings));
+  }
 };

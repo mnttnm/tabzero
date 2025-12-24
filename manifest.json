@@ -12,6 +12,13 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_title": "Tab Triage",
     "default_icon": {
@@ -27,6 +34,13 @@
         "mac": "Command+Shift+E"
       },
       "description": "Open Tab Triage"
+    },
+    "toggle_navbar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Toggle floating save bar"
     }
   },
   "chrome_url_overrides": {
