@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NotePopover } from './NotePopover';
 
 declare const chrome: any;
 
 type VisibilityMode = 'persistent' | 'on-demand';
+type Position = { x: number; y: number } | null;
 
 // Inline SVG icons to avoid external dependencies
 const StarIcon = () => (
@@ -31,6 +32,11 @@ export const FloatingNavbar: React.FC = () => {
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const [position, setPosition] = useState<Position>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   // Load settings on mount
   useEffect(() => {
@@ -80,6 +86,64 @@ export const FloatingNavbar: React.FC = () => {
     return () => chrome.storage.onChanged.removeListener(handleStorageChange);
   }, []);
 
+  // Drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only start drag on the container itself or navbar, not on buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('.navbar-btn')) return;
+
+    e.preventDefault();
+    setIsDragging(true);
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    dragOffset.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const newX = e.clientX - dragOffset.current.x;
+      const newY = e.clientY - dragOffset.current.y;
+
+      // Constrain to viewport
+      const container = containerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width;
+      const maxY = window.innerHeight - rect.height;
+
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      });
+    },
+    [isDragging]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Add/remove global mouse listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
   const showFeedback = (text: string) => {
     setFeedback(text);
     setTimeout(() => setFeedback(null), 1500);
@@ -121,9 +185,25 @@ export const FloatingNavbar: React.FC = () => {
     return null;
   }
 
+  const containerClasses = [
+    'navbar-container',
+    isVisible && !isAnimatingOut ? 'visible' : 'hidden',
+    isDragging ? 'dragging' : '',
+    position ? 'custom-position' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const containerStyle: React.CSSProperties = position
+    ? { left: position.x, top: position.y, bottom: 'auto' }
+    : {};
+
   return (
     <div
-      className={`navbar-container ${isVisible && !isAnimatingOut ? 'visible' : 'hidden'}`}
+      ref={containerRef}
+      className={containerClasses}
+      style={containerStyle}
+      onMouseDown={handleMouseDown}
     >
       {feedback && !isNoteOpen && (
         <div className="feedback-toast">{feedback}</div>

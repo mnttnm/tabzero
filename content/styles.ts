@@ -10,13 +10,23 @@ export const getNavbarStyles = (): string => `
 
   .navbar-container {
     position: fixed;
-    bottom: 24px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 2147483647;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
     font-size: 14px;
     line-height: 1.5;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .navbar-container.dragging {
+    cursor: grabbing;
+  }
+
+  .navbar-container.custom-position {
+    transform: none;
   }
 
   .navbar-container.visible {
@@ -26,6 +36,14 @@ export const getNavbarStyles = (): string => `
   .navbar-container.hidden {
     animation: slideDown 0.15s ease-in forwards;
     pointer-events: none;
+  }
+
+  .navbar-container.custom-position.visible {
+    animation: fadeUp 0.2s ease-out forwards;
+  }
+
+  .navbar-container.custom-position.hidden {
+    animation: fadeDown 0.15s ease-in forwards;
   }
 
   @keyframes slideUp {
@@ -50,27 +68,49 @@ export const getNavbarStyles = (): string => `
     }
   }
 
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeDown {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
   /* Light mode (default) */
   .navbar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.85);
+    gap: 2px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .navbar-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     border: none;
     background: transparent;
     color: #52525b;
@@ -101,15 +141,15 @@ export const getNavbarStyles = (): string => `
   }
 
   .navbar-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
   }
 
   .divider {
     width: 1px;
-    height: 24px;
-    background: rgba(0, 0, 0, 0.1);
-    margin: 0 4px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 0 2px;
   }
 
   /* Note popover */
